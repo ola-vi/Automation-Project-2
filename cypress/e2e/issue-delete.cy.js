@@ -39,7 +39,7 @@ function cancelFromConfirmationModal(expectedText) {
 
 // Function to check backlog if given title is 'in list' or 'not in list'
 function assertBacklogTitles(issueTitle, assertionType) {
-  let matchCount = 0; // Initialize a count for matches
+  let matchCount = 0;
 
   cy.get('[data-testid="board-list:backlog"] a')
     .each(($el) => {
@@ -121,7 +121,7 @@ describe('Section 1: Delete issue', () => {
 
     deleteUsingTrashIcon();
     cancelFromConfirmationModal(deleteIssueConfirmationModalText);
-
+    // LISA MODAL AKENDE ASERTION???
     cy.visit('/');
     assertBacklogTitles(issueTitle, 'in list');
   });

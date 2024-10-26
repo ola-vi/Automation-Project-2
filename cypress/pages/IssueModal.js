@@ -70,9 +70,10 @@ class IssueModal {
     }
 
     ensureIssueIsVisibleOnBoard(issueTitle) {
-        cy.get(this.issueDetailModal).should('not.exist');
-        cy.reload();
-        cy.contains(issueTitle).should('be.visible');
+      //cy.get(this.issueDetailModal).should('not.exist'); //OM found mistake! Should be .should('exist')
+      cy.get(this.issueDetailModal).should('exist');
+      cy.reload();
+      cy.contains(issueTitle).should('be.visible');
     }
 
     ensureIssueIsNotVisibleOnBoard(issueTitle) {
