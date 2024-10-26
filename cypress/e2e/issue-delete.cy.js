@@ -2,148 +2,127 @@ beforeEach(() => {
   cy.viewport(1920, 1080);
 });
 
+const deleteButtonTextForDeleteIssue = 'Delete issue';
+const deleteIssueConfirmationModalText =
+  'Are you sure you want to delete this issue?';
+
+let issueTitle = 'No title assigned yet';
+
 const getIssueDetailsModal = () =>
   cy.get('[data-testid="modal:issue-details"]');
+
 const getConfirmationModal = () => cy.get('[data-testid="modal:confirm"]');
 
-describe("Issue delete", () => {
-  beforeEach(() => {
-    cy.visit("/");
-    cy.url()
-      .should("eq", `${Cypress.env("baseUrl")}project`)
-      .then((url) => {
-        cy.visit(url + "/board");
-        //cy.contains('This is an issue of type: Task.').click();
+function deleteUsingTrashIcon() {
+  cy.get('[data-testid="icon:trash"]').should('exist').click();
+}
 
-        cy.get('[data-testid="board-list:backlog"] a').first().click();
-        // cy.get('[data-testid="modal:issue-details"]').should("be.visible");
-        getIssueDetailsModal().should("be.visible");
+function deleteFromConfirmationModal(expectedText) {
+  getConfirmationModal()
+    .should('be.visible')
+    .within(() => {
+      cy.contains('button', expectedText).should('be.visible').click();
+    });
+}
+
+function cancelFromConfirmationModal(expectedText) {
+  getConfirmationModal()
+    .should('be.visible')
+    .within(() => {
+      cy.contains(expectedText).should('be.visible');
+      cy.contains('button', /cancel/i) // Case-insensitive match for "cancel"
+        .first()
+        .should('be.visible')
+        .click();
+    });
+}
+
+// Function to check backlog if given title is 'in list' or 'not in list'
+function assertBacklogTitles(issueTitle, assertionType) {
+  let matchCount = 0; // Initialize a count for matches
+
+  cy.get('[data-testid="board-list:backlog"] a')
+    .each(($el) => {
+      cy.wrap($el) // Wrap the current element for further commands
+        .find('p') // Find the <p> element
+        .invoke('text') // Get the text content of the <p> element
+        .then((backlogTitle) => {
+          // Compare the trimmed texts
+          if (backlogTitle.trim() === issueTitle.trim()) {
+            matchCount++; // Increment the match count if found
+          }
+        });
+    })
+    .then(() => {
+      // Assert based on the assertion type
+      if (assertionType === 'in list') {
+        expect(
+          matchCount,
+          `Expected to find exactly 1 match for "${issueTitle}"`
+        ).to.equal(1);
+      } else if (assertionType === 'not in list') {
+        expect(matchCount, `Expected no matches for "${issueTitle}"`).to.equal(
+          0
+        );
+      } else {
+        throw new Error(
+          `Invalid assertion type: ${assertionType}. Use 'in list' or 'not in list'.`
+        );
+      }
+    });
+}
+
+// SECTION 1
+
+describe('Section 1: Delete issue', () => {
+  beforeEach(() => {
+    cy.visit('/');
+    cy.url()
+      .should('eq', `${Cypress.env('baseUrl')}project`)
+      .then((url) => {
+        cy.visit(url + '/board');
+
+        //Before each test first issue title from backlog is saved to variable and issue details view is opened
+        cy.get('[data-testid="board-list:backlog"] a') // Select all anchor elements
+          .first() // Select the first anchor
+          .find('p') // Find the <p> element within the anchor
+          .invoke('text') // Get the text content of the <p> element
+          .then((text) => {
+            issueTitle = text; // Assign the text to the variable
+
+            cy.log('First issue title from backlog: "' + issueTitle + '"');
+            cy.get('[data-testid="board-list:backlog"] a').first().click();
+          });
+
+        getIssueDetailsModal().should('exist');
+        getIssueDetailsModal().should('be.visible');
       });
   });
 
-  it("Should update type, status, assignees, reporter, priority successfully", () => {
+  it('Should delete first issue from backlog and assert successful deletion', () => {
     getIssueDetailsModal().within(() => {
       cy.get('[data-testid="icon:trash"]').click();
-      cy.wait(1000);
     });
 
-    getConfirmationModal().within(() => {
-      cy.contains("button", "Delete issue") // Find the button by its text
-        .should("be.visible") // Optional: Ensure the button is visible
-        .click(); // Click the button
+    //deleteFromConfirmationModal();
+    deleteFromConfirmationModal(deleteButtonTextForDeleteIssue);
 
-      /*
-      cy.get("button.sc-bwzfXH.dIxFno.sc-kGXeez.bLOzZQ") // Selects the button using its classes
-        .should("be.visible") // Optional: Ensure the button is visible
-        .click();
-        */
-    });
+    cy.get('[data-testid="modal:confirm"]').should('not.exist');
+    cy.get('[data-testid="modal:issue-details"]').should('not.exist');
 
-    return;
+    cy.reload();
 
-    cy.get('[data-testid="modal:confirm"]')
-      .shadow()
-      .find(".sc-kAzzGY")
-      .should("contain.text", "Are you sure you want to delete this issue?");
-
-    cy.get('[data-testid="modal:confirm"]') // Replace with your actual shadow host selector
-      .shadow() // Access the shadow DOM
-      .find("button") // Select all buttons within the shadow DOM
-      .first() // Select the first button (Delete issue)
-      .should("be.visible") // Ensure it is visible
-      .click(); // Click the Delete button
-
-    //cy.get('[data-testid="modal:confirm"]').shadow().find('#delete-button').should('be.visible').click(); // Adjust the selector as needed
-
-    return;
-
-    cy.frameLoaded("iframe-selector"); // Ensure iframe is loaded
-    cy.iframe().find('[data-testid="modal:confirm"]').should("be.visible");
-
-    cy.get('[data-testid="modal:confirm"] button').first().click();
-
-    cy.get('[data-testid="modal:confirm"]').should("not.exist");
-    cy.contains("Are you sure you want to delete this issue?");
-
-    // Verify the main confirmation message
-    cy.get('[data-testid="modal:confirm"] .sc-kAzzGY').should(
-      "contain.text",
-      "Are you sure you want to delete this issue?"
-    );
-
-    // Verify the additional description message
-    cy.get('[data-testid="modal:confirm"] .sc-chPdSV').should(
-      "contain.text",
-      "Once you delete, it's gone for good."
-    );
-
-    // Verify the "Delete issue" button text
-    cy.get('[data-testid="modal:confirm"] button')
-      .first()
-      .should("contain.text", "Delete issue");
-
-    // Verify the "Cancel" button text
-    cy.get('[data-testid="modal:confirm"] button')
-      .last()
-      .should("contain.text", "Cancel");
-
-    //cy.get("button.sc-bwzfXH.dIxFno.sc-kGXeez.bLOzZQ").click();
-
-    return;
-    // .should("contain.text", "Delete issue")
-
-    //This line does not work herw neither should be visible.
-    //cy.get('[data-testid="modal:confirm"]').should("exist");
-    /*
-      cy.get('[data-testid="modal:confirm"]').within(() => {
-        cy.contains("Are you sure you want to delete this issue?").should(
-          "be.visible"
-        );
-        */
-    //cy.contains("button", "Delete issue").click();
-    //cy.get('[data-testid="delete-button"]').click();
-    //cy.contains("Delete issue").parent().click();
-    //cy.get("button").contains("Delete issue").click();
-    //cy.get(".dIxFno").contains("Delete issue").click();
-    cy.get('[data-testid="modal:confirm"]').within(() => {
-      cy.get("button.sc-bwzfXH.dIxFno.sc-kGXeez.bLOzZQ")
-        // .should("contain.text", "Delete issue")
-        .click();
-      cy.get('[data-testid="modal:confirm"]').should("not.be.visible");
-    });
+    // Shuffle through all backlog elements and assert that deleted issue title is not in backlog list.
+    assertBacklogTitles(issueTitle, 'not in list');
   });
-  /*
-      return;
-      cy.get('[data-testid="select-option:Story"]')
-        .trigger("mouseover")
-        .trigger("click");
-      cy.get('[data-testid="select:type"]').should("contain", "Story");
 
-      cy.get('[data-testid="select:status"]').click("bottomRight");
-      cy.get('[data-testid="select-option:Done"]').click();
-      cy.get('[data-testid="select:status"]').should("have.text", "Done");
+  it('Should initiate deleting backlog first issue, then cancel procedure and assert the issue was not deleted', () => {
+    //At this point backlog first issue details modal is already opended by before each function
 
-      cy.get('[data-testid="select:assignees"]').click("bottomRight");
-      cy.get('[data-testid="select-option:Lord Gaben"]').click();
-      cy.get('[data-testid="select:assignees"]').click("bottomRight");
-      cy.get('[data-testid="select-option:Baby Yoda"]').click();
-      cy.get('[data-testid="select:assignees"]').should("contain", "Baby Yoda");
-      cy.get('[data-testid="select:assignees"]').should(
-        "contain",
-        "Lord Gaben"
-      );
+    deleteUsingTrashIcon();
+    cancelFromConfirmationModal(deleteIssueConfirmationModalText);
 
-      cy.get('[data-testid="select:reporter"]').click("bottomRight");
-      cy.get('[data-testid="select-option:Pickle Rick"]').click();
-      cy.get('[data-testid="select:reporter"]').should(
-        "have.text",
-        "Pickle Rick"
-      );
-
-      cy.get('[data-testid="select:priority"]').click("bottomRight");
-      cy.get('[data-testid="select-option:Medium"]').click();
-      cy.get('[data-testid="select:priority"]').should("have.text", "Medium");
-    });
+    cy.visit('/');
+    assertBacklogTitles(issueTitle, 'in list');
   });
-  */
 });
