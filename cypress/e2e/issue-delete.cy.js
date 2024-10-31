@@ -12,9 +12,18 @@ const getIssueDetailsModal = () =>
   cy.get('[data-testid="modal:issue-details"]');
 
 const getConfirmationModal = () => cy.get('[data-testid="modal:confirm"]');
+const getTrashIcon = () => cy.get('[data-testid="icon:trash"]');
+const getCloseIcon = () => cy.get('[data-testid="icon:close"]');
 
 function deleteUsingTrashIcon() {
-  cy.get('[data-testid="icon:trash"]').should('exist').click();
+  getTrashIcon().should('exist').click();
+}
+
+function closeUsingXIcon(iconIndex) {
+  getCloseIcon()
+    .eq(iconIndex - 1)  // using numbers from 1 up. For first index the value is 1-1=0
+    .should('exist')
+    .click();
 }
 
 function deleteFromConfirmationModal(expectedText) {
@@ -100,15 +109,16 @@ describe('Section 1: Delete issue', () => {
   });
 
   it('Should delete first issue from backlog and assert successful deletion', () => {
-    getIssueDetailsModal().within(() => {
-      cy.get('[data-testid="icon:trash"]').click();
-    });
+    getIssueDetailsModal()
+      .should('exist')
+      .within(() => {
+        deleteUsingTrashIcon();
+      });
 
-    //deleteFromConfirmationModal();
     deleteFromConfirmationModal(deleteButtonTextForDeleteIssue);
 
-    cy.get('[data-testid="modal:confirm"]').should('not.exist');
-    cy.get('[data-testid="modal:issue-details"]').should('not.exist');
+    getConfirmationModal().should('not.exist');
+    getIssueDetailsModal().should('not.exist');
 
     cy.reload();
 
@@ -117,12 +127,25 @@ describe('Section 1: Delete issue', () => {
   });
 
   it('Should initiate deleting backlog first issue, then cancel procedure and assert the issue was not deleted', () => {
-    //At this point backlog first issue details modal is already opended by before each function
+    
+    getIssueDetailsModal()
+      .should('exist')
+      .within(() => {
+        deleteUsingTrashIcon();
+      });
 
-    deleteUsingTrashIcon();
     cancelFromConfirmationModal(deleteIssueConfirmationModalText);
-    // LISA MODAL AKENDE ASERTION???
-    cy.visit('/');
+
+    getIssueDetailsModal()
+      .should('exist')
+      .within(() => {
+        closeUsingXIcon(1);
+      });
+
+    getConfirmationModal().should('not.exist');
+    getIssueDetailsModal().should('not.exist');
+
+    cy.reload();
     assertBacklogTitles(issueTitle, 'in list');
   });
 });
