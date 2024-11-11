@@ -5,6 +5,7 @@ import IssueModal from '../../pages/IssueModal';
 
 describe('Issue create', () => {
   beforeEach(() => {
+    cy.viewport(1920, 1080);
     cy.visit('/');
     cy.url()
       .should('eq', `${Cypress.env('baseUrl')}project/board`)
@@ -17,7 +18,7 @@ describe('Issue create', () => {
   //data set with which we are creating issue, saved as variable
   const issueDetails = {
     title: 'TEST_TITLE',
-    type: 'Bug',
+    type: 'Bug', // Not working. Some page action ruins it and selects TASK (OM)
     description: 'TEST_DESCRIPTION',
     assignee: 'Lord Gaben',
   };
